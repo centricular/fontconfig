@@ -19,8 +19,6 @@ check_headers = [
   ['sys/mount.h'],
 ]
 
-# FIXME AX_CREATE_STDINT_H
-
 check_funcs = [
   ['link'],
   ['mkstemp'],
@@ -41,7 +39,12 @@ check_funcs = [
   ['fstatfs'],
   ['lstat'],
   ['mmap'],
-  ['vprintf']
+  ['vprintf'],
+  ['FT_Get_BDF_Property'],
+  ['FT_Get_PS_Font_Info'],
+  ['FT_Has_PS_Glyph_Names'],
+  ['FT_Get_X11_Font_Format'],
+  ['FT_Done_MM_Var'],
 ]
 
 check_header_symbols = [
@@ -56,12 +59,6 @@ check_struct_members = [
   ['struct dirent', 'd_type', ['dirent.h']],
 ]
 
-check_deps = [
-  ['freetype', {'pkg': 'freetype2', 'version': '>= 21.0.15'}],
-  ['expat'],
-  ['uuid'],
-]
-
 check_sizeofs = [
   ['void *', {'conf-name': 'SIZEOF_VOID_P'}],
 ]
@@ -71,10 +68,13 @@ check_alignofs = [
   ['double'],
 ]
 
+freetype_dep = dependency('freetype2', version: '>= 21.0.15', fallback: ['freetype2', 'freetype_dep'])
+expat_dep = dependency('expat', fallback: ['expat', 'expat_dep'])
+
 c_args = ['-DHAVE_CONFIG_H']
 
 conf = configuration_data()
-deps = []
+deps = [freetype_dep, expat_dep]
 incbase = include_directories('.')
 
 foreach check : check_headers
@@ -88,33 +88,11 @@ endforeach
 foreach check : check_funcs
   name = check[0]
   opts = check.length() > 1 ? check[1] : {}
-  link_withs = opts.get('link_with', [])
-  extra_deps = []
   found = true
 
-  # First try without linking
-
-  found = cc.has_function(name)
-
-  if not found and link_withs.length() > 0
-    found = true
-
-    foreach link_with : link_withs
-      dep = cc.find_library(link_with)
-      if dep.found()
-	extra_deps += dep
-      else
-	found = false
-      endif
-    endforeach
-
-    if found
-      found = cc.has_function(name, dependencies: extra_deps)
-    endif
-  endif
+  found = cc.has_function(name, dependencies: deps)
 
   if found
-    deps += extra_deps
     conf.set('HAVE_@0@'.format(name.to_upper()), 1)
   endif
 endforeach
@@ -144,26 +122,6 @@ foreach check : check_struct_members
   endif
 endforeach
 
-foreach check : check_deps
-  name = check[0]
-  opts = check.length() > 1 ? check[1] : {}
-  pkg_name = opts.get('pkg', name)
-  required = opts.get('required', true)
-
-  if opts.contains('version')
-    dep = dependency(pkg_name, version : opts['version'], required : required)
-  else
-    dep = dependency(pkg_name, required : required)
-  endif
-
-  if dep.found()
-    if not required
-      conf.set('@0@_@1@'.format(conf_prefix, name).to_upper(), 1)
-    endif
-    deps += [dep]
-  endif
-endforeach
-
 foreach check : check_sizeofs
   type = check[0]
   opts = check.length() > 1 ? check[1] : {}
@@ -188,6 +146,15 @@ else
   conf.set('FLEXIBLE_ARRAY_MEMBER', 1)
 endif
 
+if cc.links(files('meson-cc-tests/intel-atomic-primitives-test.c'), name: 'Intel atomics')
+  conf.set('HAVE_INTEL_ATOMIC_PRIMITIVES', 1)
+endif
+
+if cc.links(files('meson-cc-tests/solaris-atomic-operations.c'), name: 'Solaris atomic ops')
+  conf.set('HAVE_SOLARIS_ATOMIC_OPS', 1)
+endif
+
+
 prefix = get_option('prefix')
 
 if host_machine.system() == 'windows'
@@ -196,6 +163,10 @@ if host_machine.system() == 'windows'
 else
   conf.set_quoted('FC_DEFAULT_FONTS', '/usr/share/fonts')
   fc_cachedir = join_paths(prefix, get_option('localstatedir'), 'cache', meson.project_name())
+  thread_dep = dependency('threads')
+  uuid_dep = dependency('uuid')
+  conf.set('HAVE_PTHREAD', 1)
+  deps += [thread_dep, uuid_dep]
 endif
 
 fc_templatedir = join_paths(prefix, get_option('datadir'), 'fontconfig/conf.avail')
@@ -203,15 +174,11 @@ fc_baseconfigdir = join_paths(prefix, get_option('sysconfdir'), 'fonts')
 fc_configdir = join_paths(fc_baseconfigdir, 'conf.d')
 fc_xmldir = join_paths(prefix, get_option('datadir'), 'xml/fontconfig')
 
-c_args += [
-  '-DFC_CACHEDIR="@0@"'.format(fc_cachedir),
-  '-DFC_TEMPLATEDIR="@0@"'.format(fc_templatedir),
-  '-DFONTCONFIG_PATH="@0@"'.format(fc_baseconfigdir),
-]
-
-message('Using cache dir at @0@'.format(fc_cachedir))
-message('Using template dir at @0@'.format(fc_templatedir))
-message('Using font config path @0@'.format(fc_baseconfigdir))
+conf.set_quoted('CONFIGDIR', fc_configdir)
+conf.set_quoted('FC_CACHEDIR', fc_cachedir)
+conf.set_quoted('FC_TEMPLATEDIR', fc_templatedir)
+conf.set_quoted('FONTCONFIG_PATH', fc_baseconfigdir)
+conf.set_quoted('FC_FONTPATH', '')
 
 # Thank you systemd
 # FIXME: upstream in meson
@@ -243,6 +210,8 @@ message('gperf len type is @0@'.format(gperf_len_type))
 conf.set('FC_GPERF_SIZE_T', gperf_len_type,
   description : 'The type of gperf "len" parameter')
 
+conf.set('_GNU_SOURCE', true)
+
 incsrc = include_directories('src')
 
 fcstdint_h = configure_file(
@@ -269,5 +238,16 @@ ft_alias_headers = custom_target('ft_alias_headers',
 subdir('fc-case')
 subdir('fc-lang')
 subdir('src')
+subdir('fc-cache')
+subdir('fc-cat')
+subdir('fc-conflist')
+subdir('fc-list')
+subdir('fc-match')
+subdir('fc-pattern')
+subdir('fc-query')
+subdir('fc-scan')
+subdir('fc-validate')
+subdir('test')
 
 configure_file(output: 'config.h', configuration: conf)
+configure_file(input: 'fonts.conf.in', output: 'fonts.conf', configuration: conf)

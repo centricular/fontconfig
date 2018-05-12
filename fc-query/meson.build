@@ -1,0 +1,6 @@
+fcquery = executable('fc-query', ['fc-query.c', fcstdint_h, alias_headers, ft_alias_headers],
+  include_directories: [incbase, incsrc],
+  link_with: [libfontconfig],
+  dependencies: [freetype_dep],
+  c_args: c_args,
+)
