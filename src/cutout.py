@@ -19,14 +19,15 @@ if __name__== '__main__':
     with open(args[0].output, 'w') as out:
         write = True
         for l in stdout.split('\n'):
+            l = l.strip('\r')
             if l.startswith('CUT_OUT_BEGIN'):
                 write = False
 
             if write and l:
                 stripped = re.sub('^\s+', '', l)
                 stripped = re.sub('\s*,\s*', ',', stripped)
-                out.write(stripped)
-                out.write(os.linesep)
+                if not stripped.isspace() and stripped:
+                    out.write('%s\n' % stripped)
 
             if l.startswith('CUT_OUT_END'):
                 write = True

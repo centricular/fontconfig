@@ -9,7 +9,7 @@ from collections import OrderedDict
 # cat fontconfig/fontconfig.h | grep '^Fc[^ ]* *(' | sed -e 's/ *(.*$//'
 
 def extract(fname):
-    with open(fname, 'r') as f:
+    with open(fname, 'r', encoding='utf-8') as f:
         for l in f.readlines():
             l = l.rstrip()
             m = re.match(r'^(Fc[^ ]*)[\s\w]*\(.*', l)

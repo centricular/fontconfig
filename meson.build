@@ -203,23 +203,27 @@ conf.set_quoted('FC_FONTPATH', '')
 
 gperf = find_program('gperf')
 
-gperf_test_format = '''
-#include <string.h>
-const char * in_word_set(const char *, @0@);
-@1@
-'''
-gperf_snippet_format = 'echo foo,bar | @0@ -L ANSI-C'
-gperf_snippet = run_command('sh', '-c', gperf_snippet_format.format(gperf.path()))
-gperf_test = gperf_test_format.format('size_t', gperf_snippet.stdout())
-
-if cc.compiles(gperf_test)
+if host_machine.system() == 'windows'
   gperf_len_type = 'size_t'
 else
-  gperf_test = gperf_test_format.format('unsigned', gperf_snippet.stdout())
+  gperf_test_format = '''
+  #include <string.h>
+  const char * in_word_set(const char *, @0@);
+  @1@
+  '''
+  gperf_snippet_format = 'echo foo,bar | @0@ -L ANSI-C'
+  gperf_snippet = run_command('sh', '-c', gperf_snippet_format.format(gperf.path()))
+  gperf_test = gperf_test_format.format('size_t', gperf_snippet.stdout())
+
   if cc.compiles(gperf_test)
-    gperf_len_type = 'unsigned'
+    gperf_len_type = 'size_t'
   else
-    error('unable to determine gperf len type')
+    gperf_test = gperf_test_format.format('unsigned', gperf_snippet.stdout())
+    if cc.compiles(gperf_test)
+      gperf_len_type = 'unsigned'
+    else
+      error('unable to determine gperf len type')
+    endif
   endif
 endif
 
@@ -236,6 +240,18 @@ fcstdint_h = configure_file(
   input: 'src/fcstdint.h.in',
   output: 'fcstdint.h',
   configuration: configuration_data())
+
+if host_machine.system() == 'windows'
+  fcunistd_h = configure_file(
+    input: 'unistd.h.in',
+    output: 'unistd.h',
+    configuration: configuration_data())
+
+  fcdirent_h = configure_file(
+    input: 'dirent.h.in',
+    output: 'dirent.h',
+    configuration: configuration_data())
+endif
 
 stdinwrapper = files('stdin_wrapper.py')[0]
 makealias = files('src/makealias.py')[0]

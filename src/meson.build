@@ -29,6 +29,10 @@ fc_sources = [
   'ftglue.c',
 ]
 
+if host_machine.system() == 'windows'
+  fc_sources += ['dirent.c']
+endif
+
 # FIXME: obviously fragile, cc.preprocess would be sweet
 if cc.get_id() == 'gcc'
   cpp = ['gcc', '-E', '-P']
@@ -39,6 +43,8 @@ elif cc.get_id() == 'clang'
 else
   error('FIXME: implement cc.preprocess')
 endif
+
+cpp += ['-I', join_paths(meson.current_source_dir(), '..')]
 
 fcobjshash_gperf = custom_target('fcobjshash.gperf',
   input: 'fcobjshash.gperf.h',
@@ -57,4 +63,9 @@ libfontconfig = library('fontconfig', [fc_sources, alias_headers, ft_alias_heade
   c_args: c_args,
   include_directories: incbase,
   dependencies: deps,
+  vs_module_defs: 'fontconfig.def',
+  install: true,
+  soversion: '1',
+  version: '1.11.1',
+  name_prefix: 'lib',
 )
