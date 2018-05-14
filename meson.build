@@ -47,6 +47,14 @@ check_funcs = [
   ['FT_Done_MM_Var'],
 ]
 
+check_freetype_funcs = [
+  ['FT_Get_BDF_Property'],
+  ['FT_Get_PS_Font_Info'],
+  ['FT_Has_PS_Glyph_Names'],
+  ['FT_Get_X11_Font_Format'],
+  ['FT_Done_MM_Var'],
+]
+
 check_header_symbols = [
   ['posix_fadvise', 'fcntl.h']
 ]
@@ -77,6 +85,16 @@ conf = configuration_data()
 deps = [freetype_dep, expat_dep]
 incbase = include_directories('.')
 
+# We cannot try compiling against an internal dependency
+if freetype_dep.type_name() == 'internal'
+  foreach func: check_freetype_funcs
+    name = func[0]
+    conf.set('HAVE_@0@'.format(name.to_upper()), 1)
+  endforeach
+else
+  check_funcs += check_freetype_funcs
+endif
+
 foreach check : check_headers
   name = check[0]
 
@@ -90,7 +108,7 @@ foreach check : check_funcs
   opts = check.length() > 1 ? check[1] : {}
   found = true
 
-  found = cc.has_function(name, dependencies: deps)
+  found = cc.has_function(name)
 
   if found
     conf.set('HAVE_@0@'.format(name.to_upper()), 1)
