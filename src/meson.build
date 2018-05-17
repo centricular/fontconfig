@@ -69,3 +69,8 @@ libfontconfig = library('fontconfig', [fc_sources, alias_headers, ft_alias_heade
   version: '1.11.1',
   name_prefix: 'lib',
 )
+
+fontconfig_dep = declare_dependency(link_with: libfontconfig,
+  include_directories: incbase,
+  dependencies: deps,
+)
