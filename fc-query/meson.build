@@ -3,4 +3,5 @@ fcquery = executable('fc-query', ['fc-query.c', fcstdint_h, alias_headers, ft_al
   link_with: [libfontconfig],
   dependencies: [freetype_dep],
   c_args: c_args,
+  install: true,
 )

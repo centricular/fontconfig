@@ -3,4 +3,5 @@ fcvalidate = executable('fc-validate', ['fc-validate.c', fcstdint_h, alias_heade
   link_with: [libfontconfig],
   dependencies: [freetype_dep],
   c_args: c_args,
+  install: true,
 )

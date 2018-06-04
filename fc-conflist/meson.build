@@ -2,4 +2,5 @@ fcconflist = executable('fc-conflist', ['fc-conflist.c', fcstdint_h, alias_heade
   include_directories: [incbase, incsrc],
   link_with: [libfontconfig],
   c_args: c_args,
+  install: true,
 )

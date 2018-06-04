@@ -2,4 +2,5 @@ fccache = executable('fc-cache', ['fc-cache.c', fcstdint_h, alias_headers, ft_al
   include_directories: [incbase, incsrc],
   link_with: [libfontconfig],
   c_args: c_args,
+  install: true,
 )
