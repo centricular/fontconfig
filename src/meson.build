@@ -77,4 +77,5 @@ fontconfig_dep = declare_dependency(link_with: libfontconfig,
 
 pkgmod.generate(libfontconfig,
   description: 'Font configuration and customization library',
+  subdirs: ['fontconfig'],
   version: meson.project_version())
