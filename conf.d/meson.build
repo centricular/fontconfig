@@ -61,6 +61,6 @@ install_data(conf_files, install_dir: join_paths(get_option('datadir'), 'fontcon
 
 meson.add_install_script('link_confs.py',
   join_paths(get_option('prefix'), get_option('datadir'), 'fontconfig/conf.avail'),
-  join_paths(fc_baseconfigdir, 'conf.d'),
+  join_paths(get_option('sysconfdir'), 'fonts', 'conf.d'),
   conf_links,
 )

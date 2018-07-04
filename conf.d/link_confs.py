@@ -11,12 +11,14 @@ if __name__=='__main__':
     parser.add_argument('links', nargs='+')
     args = parser.parse_args()
 
-    if not os.path.exists(args.confpath):
-        os.makedirs(args.confpath)
+    confpath = os.path.join(os.environ['MESON_INSTALL_DESTDIR_PREFIX'], args.confpath)
+
+    if not os.path.exists(confpath):
+        os.makedirs(confpath)
 
     for link in args.links:
         src = os.path.join(args.availpath, link)
-        dst = os.path.join(args.confpath, link)
+        dst = os.path.join(confpath, link)
         try:
             os.symlink(src, dst)
         except NotImplementedError:
