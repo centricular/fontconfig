@@ -22,6 +22,12 @@ if __name__=='__main__':
         try:
             os.symlink(src, dst)
         except NotImplementedError:
+            # Not supported on this version of Windows
             break
+        except OSError as e:
+            # Symlink privileges are not available
+            if len(e.args) == 1 and 'privilege' in e.args[0]:
+                break
+            raise
         except FileExistsError:
             pass
