@@ -221,5 +221,4 @@ EXPORTS
 	FcWeightFromOpenTypeDouble
 	FcWeightToOpenType
 	FcWeightToOpenTypeDouble
-LIBRARY libfontconfig-1.dll
 VERSION 12.1
