@@ -212,9 +212,15 @@ fonts_conf.set('CONFIGDIR', fc_configdir)
 # FIXME: upstream in meson
 
 gperf = find_program('gperf')
+sh = find_program('sh', required : false)
 
-if host_machine.system() == 'windows'
-  gperf_len_type = 'size_t'
+if host_machine.system() == 'windows' or not sh.found()
+  # TODO: This is not always correct
+  if cc.get_id() == 'msvc'
+    gperf_len_type = 'size_t'
+  else
+    gperf_len_type = 'unsigned'
+  endif
 else
   gperf_test_format = '''
   #include <string.h>
@@ -222,7 +228,7 @@ else
   @1@
   '''
   gperf_snippet_format = 'echo foo,bar | @0@ -L ANSI-C'
-  gperf_snippet = run_command('sh', '-c', gperf_snippet_format.format(gperf.path()))
+  gperf_snippet = run_command(sh, '-c', gperf_snippet_format.format(gperf.path()))
   gperf_test = gperf_test_format.format('size_t', gperf_snippet.stdout())
 
   if cc.compiles(gperf_test)
@@ -254,15 +260,19 @@ fcstdint_h = configure_file(
   configuration: configuration_data())
 
 if host_machine.system() == 'windows'
-  fcunistd_h = configure_file(
-    input: 'unistd.h.in',
-    output: 'unistd.h',
-    configuration: configuration_data())
+  if not conf.has('HAVE_UNISTD_H')
+    fcunistd_h = configure_file(
+      input: 'unistd.h.in',
+      output: 'unistd.h',
+      configuration: configuration_data())
+  endif
 
-  fcdirent_h = configure_file(
-    input: 'dirent.h.in',
-    output: 'dirent.h',
-    configuration: configuration_data())
+  if not conf.has('HAVE_STRUCT_DIRENT')
+    fcdirent_h = configure_file(
+      input: 'dirent.h.in',
+      output: 'dirent.h',
+      configuration: configuration_data())
+  endif
 endif
 
 stdinwrapper = files('stdin_wrapper.py')[0]
